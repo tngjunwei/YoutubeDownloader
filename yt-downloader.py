@@ -32,13 +32,18 @@ def get_update_func():
     return update, progress_bar
 
 
-def download(url):
+def download(url, filename):
+    DOWNLOAD_DIR = "./downloads"
+
     try:
         yt = YouTube(url, use_oauth=True, allow_oauth_cache=True)
         name = yt.title
     except Exception as e:
         print(e)
         exit(1)
+
+    if not os.path.exists(DOWNLOAD_DIR):
+        os.mkdir(DOWNLOAD_DIR)
 
     pieces = yt.streams.filter(only_audio=True)
     print(f"Download {name}")
@@ -51,19 +56,22 @@ def download(url):
     selected = pieces[choice]
     print(f"Selected {selected.mime_type}, {selected.abr}")
 
-    filename = f"{name}.mp3"
+    new_file = os.path.join(DOWNLOAD_DIR, f"{name}.mp3") if not filename else filename
 
     update_func, t = get_update_func()
     yt.stream_monostate.on_progress = update_func
-    out_file = selected.download(output_path=".")
+    out_file = selected.download(output_path=DOWNLOAD_DIR)
     t.close()
 
-    dir, base = os.path.split(out_file)
+    _, base = os.path.split(out_file)
 
-    print(os.path.join(".", base))
     print("Converting file to mp3 format")
-    subprocess.run(['ffmpeg', '-i', base, filename])
-    print("Done")
+    instance = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", '-i', out_file, new_file])
+    if instance.returncode == 0:
+        os.remove(out_file)
+        print("Done")
+    else:
+        print("Error converting to mp3")
 
 def run():
     if len(sys.argv) != 2:
