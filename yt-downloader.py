@@ -32,7 +32,7 @@ def get_update_func():
     return update, progress_bar
 
 
-def download(url, filename):
+def download(url, filename=""):
     DOWNLOAD_DIR = "./downloads"
 
     try:
@@ -63,8 +63,6 @@ def download(url, filename):
     out_file = selected.download(output_path=DOWNLOAD_DIR)
     t.close()
 
-    _, base = os.path.split(out_file)
-
     print("Converting file to mp3 format")
     instance = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", '-i', out_file, new_file])
     if instance.returncode == 0:
@@ -74,11 +72,14 @@ def download(url, filename):
         print("Error converting to mp3")
 
 def run():
-    if len(sys.argv) != 2:
-        print("USAGE: ./downloader [URL]")
+    num_of_arguments = len(sys.argv)
+    if 2 <= num_of_arguments <= 3:
+        print("USAGE: ./downloader [URL] [optional OUTPUT]")
         exit(1)
+
     url = sys.argv[1]
-    download(url)
+    output_name = sys.argv[2] if num_of_arguments == 3 else ""
+    download(url, output_name)
     exit(0)
 
 if __name__ == "__main__":
