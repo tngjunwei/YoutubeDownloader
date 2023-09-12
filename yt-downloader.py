@@ -2,6 +2,7 @@ from pytube import YouTube
 import os
 import sys
 from tqdm import tqdm
+from pathvalidate import sanitize_filename
 import subprocess
 
 def get_input(num_of_options):
@@ -54,17 +55,22 @@ def download(url, filename=""):
 
     choice = get_input(len(pieces))
     selected = pieces[choice]
+    ext = selected.mime_type.split("/")[1]
     print(f"Selected {selected.mime_type}, {selected.abr}")
 
-    new_file = os.path.join(DOWNLOAD_DIR, f"{name}.mp3") if not filename else filename
+    name = name if not filename else filename
+    name = sanitize_filename(name)
+    out_filename = f"{name}.{ext}"
+    final_filename = os.path.join(DOWNLOAD_DIR, f"{name}.mp3") if len(filename) == 0 else filename
 
     update_func, t = get_update_func()
     yt.stream_monostate.on_progress = update_func
-    out_file = selected.download(output_path=DOWNLOAD_DIR)
+    out_file = selected.download(output_path=DOWNLOAD_DIR, filename=out_filename)
     t.close()
 
     print("Converting file to mp3 format")
-    instance = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", '-i', out_file, new_file])
+    print(final_filename)
+    instance = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", '-i', out_file, final_filename])
     if instance.returncode == 0:
         os.remove(out_file)
         print("Done")
@@ -73,7 +79,7 @@ def download(url, filename=""):
 
 def run():
     num_of_arguments = len(sys.argv)
-    if 2 <= num_of_arguments <= 3:
+    if not (2 <= num_of_arguments <= 3):
         print("USAGE: ./downloader [URL] [optional OUTPUT]")
         exit(1)
 
